@@ -22,6 +22,7 @@ pub(crate) use crate::icon::RgbaIcon as PlatformIcon;
 
 pub mod wayland;
 pub mod x11;
+pub mod gbm;
 
 /// Environment variable specifying which backend should be used on unix platform.
 ///
@@ -84,12 +85,14 @@ impl fmt::Display for OsError {
 pub enum Window {
     X(x11::Window),
     Wayland(wayland::Window),
+    Gbm(gbm::Window),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum WindowId {
     X(x11::WindowId),
     Wayland(wayland::WindowId),
+    Gbm(gbm::WindowId),
 }
 
 impl WindowId {
@@ -102,6 +105,7 @@ impl WindowId {
 pub enum DeviceId {
     X(x11::DeviceId),
     Wayland(wayland::DeviceId),
+    Gbm(gbm::DeviceId),
 }
 
 impl DeviceId {
@@ -114,6 +118,7 @@ impl DeviceId {
 pub enum MonitorHandle {
     X(x11::MonitorHandle),
     Wayland(wayland::MonitorHandle),
+    Gbm(gbm::MonitorHandle),
 }
 
 impl MonitorHandle {
@@ -122,6 +127,7 @@ impl MonitorHandle {
         match self {
             &MonitorHandle::X(ref m) => m.name(),
             &MonitorHandle::Wayland(ref m) => m.name(),
+            &MonitorHandle::Gbm(ref m) => m.name(),
         }
     }
 
@@ -130,6 +136,7 @@ impl MonitorHandle {
         match self {
             &MonitorHandle::X(ref m) => m.native_identifier(),
             &MonitorHandle::Wayland(ref m) => m.native_identifier(),
+            &MonitorHandle::Gbm(ref m) => m.native_identifier(),
         }
     }
 
@@ -138,6 +145,7 @@ impl MonitorHandle {
         match self {
             &MonitorHandle::X(ref m) => m.size(),
             &MonitorHandle::Wayland(ref m) => m.size(),
+            &MonitorHandle::Gbm(ref m) => m.size(),
         }
     }
 
@@ -146,6 +154,7 @@ impl MonitorHandle {
         match self {
             &MonitorHandle::X(ref m) => m.position(),
             &MonitorHandle::Wayland(ref m) => m.position(),
+            &MonitorHandle::Gbm(ref m) => m.position(),
         }
     }
 
@@ -154,6 +163,7 @@ impl MonitorHandle {
         match self {
             &MonitorHandle::X(ref m) => m.scale_factor(),
             &MonitorHandle::Wayland(ref m) => m.scale_factor() as f64,
+            &MonitorHandle::Gbm(ref m) => m.hidpi_factor() as f64,
         }
     }
 
@@ -162,6 +172,7 @@ impl MonitorHandle {
         match self {
             MonitorHandle::X(m) => Box::new(m.video_modes()),
             MonitorHandle::Wayland(m) => Box::new(m.video_modes()),
+            MonitorHandle::Gbm(m) => Box::new(m.video_modes()),
         }
     }
 }
@@ -220,6 +231,9 @@ impl Window {
             EventLoopWindowTarget::X(ref window_target) => {
                 x11::Window::new(window_target, attribs, pl_attribs).map(Window::X)
             }
+            EventLoopWindowTarget::Gbm(ref window_target) => {
+                gbm::Window::new(window_target, attribs, pl_attribs).map(Window::Gbm)
+            }
         }
     }
 
@@ -228,6 +242,7 @@ impl Window {
         match self {
             &Window::X(ref w) => WindowId::X(w.id()),
             &Window::Wayland(ref w) => WindowId::Wayland(w.id()),
+            &Window::Gbm(ref w) => WindowId::Gbm(w.id()),
         }
     }
 
@@ -236,6 +251,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.set_title(title),
             &Window::Wayland(ref w) => w.set_title(title),
+            &Window::Gbm(ref w) => w.set_title(title),
         }
     }
 
@@ -244,6 +260,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.set_visible(visible),
             &Window::Wayland(ref w) => w.set_visible(visible),
+            &Window::Gbm(ref w) => w.set_visible(visible),
         }
     }
 
@@ -252,6 +269,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.outer_position(),
             &Window::Wayland(ref w) => w.outer_position(),
+            &Window::Gbm(ref w) => w.outer_position(),
         }
     }
 
@@ -260,6 +278,7 @@ impl Window {
         match self {
             &Window::X(ref m) => m.inner_position(),
             &Window::Wayland(ref m) => m.inner_position(),
+            &Window::Gbm(ref m) => m.inner_position(),
         }
     }
 
@@ -268,6 +287,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.set_outer_position(position),
             &Window::Wayland(ref w) => w.set_outer_position(position),
+            &Window::Gbm(ref w) => w.set_outer_position(position),
         }
     }
 
@@ -276,6 +296,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.inner_size(),
             &Window::Wayland(ref w) => w.inner_size(),
+            &Window::Gbm(ref w) => w.inner_size(),
         }
     }
 
@@ -284,6 +305,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.outer_size(),
             &Window::Wayland(ref w) => w.outer_size(),
+            &Window::Gbm(ref w) => w.outer_size(),
         }
     }
 
@@ -292,6 +314,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.set_inner_size(size),
             &Window::Wayland(ref w) => w.set_inner_size(size),
+            &Window::Gbm(ref w) => w.set_inner_size(size),
         }
     }
 
@@ -300,6 +323,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.set_min_inner_size(dimensions),
             &Window::Wayland(ref w) => w.set_min_inner_size(dimensions),
+            &Window::Gbm(ref w) => w.set_min_inner_size(dimensions),
         }
     }
 
@@ -308,6 +332,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.set_max_inner_size(dimensions),
             &Window::Wayland(ref w) => w.set_max_inner_size(dimensions),
+            &Window::Gbm(ref w) => w.set_max_inner_size(dimensions),
         }
     }
 
@@ -316,6 +341,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.set_resizable(resizable),
             &Window::Wayland(ref w) => w.set_resizable(resizable),
+            &Window::Gbm(ref w) => w.set_resizable(resizable),
         }
     }
 
@@ -324,6 +350,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.set_cursor_icon(cursor),
             &Window::Wayland(ref w) => w.set_cursor_icon(cursor),
+            &Window::Gbm(ref w) => w.set_cursor_icon(cursor),
         }
     }
 
@@ -332,6 +359,7 @@ impl Window {
         match self {
             &Window::X(ref window) => window.set_cursor_grab(grab),
             &Window::Wayland(ref window) => window.set_cursor_grab(grab),
+            &Window::Gbm(ref window) => window.set_cursor_grab(grab),
         }
     }
 
@@ -340,6 +368,7 @@ impl Window {
         match self {
             &Window::X(ref window) => window.set_cursor_visible(visible),
             &Window::Wayland(ref window) => window.set_cursor_visible(visible),
+            &Window::Gbm(ref window) => window.set_cursor_visible(visible),
         }
     }
 
@@ -348,6 +377,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.scale_factor(),
             &Window::Wayland(ref w) => w.scale_factor() as f64,
+            &Window::Gbm(ref w) => w.scale_factor() as f64,
         }
     }
 
@@ -356,6 +386,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.set_cursor_position(position),
             &Window::Wayland(ref w) => w.set_cursor_position(position),
+            &Window::Gbm(ref w) => w.set_cursor_position(position),
         }
     }
 
@@ -364,6 +395,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.set_maximized(maximized),
             &Window::Wayland(ref w) => w.set_maximized(maximized),
+            &Window::Gbm(ref w) => w.set_maximized(maximized),
         }
     }
 
@@ -380,6 +412,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.fullscreen(),
             &Window::Wayland(ref w) => w.fullscreen(),
+            &Window::Gbm(ref w) => w.fullscreen(),
         }
     }
 
@@ -388,6 +421,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.set_fullscreen(monitor),
             &Window::Wayland(ref w) => w.set_fullscreen(monitor),
+            &Window::Gbm(ref w) => w.set_fullscreen(monitor),
         }
     }
 
@@ -396,6 +430,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.set_decorations(decorations),
             &Window::Wayland(ref w) => w.set_decorations(decorations),
+            &Window::Gbm(ref w) => w.set_decorations(decorations),
         }
     }
 
@@ -404,6 +439,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.set_always_on_top(always_on_top),
             &Window::Wayland(_) => (),
+            &Window::Gbm(_) => (),
         }
     }
 
@@ -412,6 +448,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.set_window_icon(window_icon),
             &Window::Wayland(_) => (),
+            &Window::Gbm(_) => (),
         }
     }
 
@@ -420,6 +457,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.set_ime_position(position),
             &Window::Wayland(_) => (),
+            &Window::Gbm(_) => (),
         }
     }
 
@@ -428,6 +466,7 @@ impl Window {
         match self {
             &Window::X(ref w) => w.request_redraw(),
             &Window::Wayland(ref w) => w.request_redraw(),
+            &Window::Gbm(ref w) => w.request_redraw(),
         }
     }
 
@@ -439,6 +478,9 @@ impl Window {
             },
             &Window::Wayland(ref window) => RootMonitorHandle {
                 inner: MonitorHandle::Wayland(window.current_monitor()),
+            },
+            &Window::Gbm(ref window) => RootMonitorHandle {
+                inner: MonitorHandle::Gbm(window.current_monitor()),
             },
         }
     }
@@ -456,6 +498,11 @@ impl Window {
                 .into_iter()
                 .map(MonitorHandle::Wayland)
                 .collect(),
+            &Window::Gbm(ref window) => window
+                .available_monitors()
+                .into_iter()
+                .map(MonitorHandle::Gbm)
+                .collect(),
         }
     }
 
@@ -464,6 +511,7 @@ impl Window {
         match self {
             &Window::X(ref window) => MonitorHandle::X(window.primary_monitor()),
             &Window::Wayland(ref window) => MonitorHandle::Wayland(window.primary_monitor()),
+            &Window::Gbm(ref window) => MonitorHandle::Gbm(window.primary_monitor()),
         }
     }
 
@@ -471,6 +519,7 @@ impl Window {
         match self {
             &Window::X(ref window) => RawWindowHandle::Xlib(window.raw_window_handle()),
             &Window::Wayland(ref window) => RawWindowHandle::Wayland(window.raw_window_handle()),
+            &Window::Gbm(ref window) => unimplemented!(),
         }
     }
 }
@@ -510,11 +559,13 @@ unsafe extern "C" fn x_error_callback(
 pub enum EventLoop<T: 'static> {
     Wayland(wayland::EventLoop<T>),
     X(x11::EventLoop<T>),
+    Gbm(gbm::EventLoop<T>),
 }
 
 pub enum EventLoopProxy<T: 'static> {
     X(x11::EventLoopProxy<T>),
     Wayland(wayland::EventLoopProxy<T>),
+    Gbm(gbm::EventLoopProxy<T>),
 }
 
 impl<T: 'static> Clone for EventLoopProxy<T> {
@@ -522,6 +573,7 @@ impl<T: 'static> Clone for EventLoopProxy<T> {
         match self {
             EventLoopProxy::X(proxy) => EventLoopProxy::X(proxy.clone()),
             EventLoopProxy::Wayland(proxy) => EventLoopProxy::Wayland(proxy.clone()),
+            EventLoopProxy::Gbm(proxy) => EventLoopProxy::Gbm(proxy.clone()),
         }
     }
 }
@@ -545,8 +597,11 @@ impl<T: 'static> EventLoop<T> {
                     return EventLoop::new_wayland_any_thread()
                         .expect("Failed to initialize Wayland backend");
                 }
+                "gbm" => {
+                    return EventLoop::new_wayland().expect("Failed to initialize GBM backend");
+                }
                 _ => panic!(
-                    "Unknown environment variable value for {}, try one of `x11`,`wayland`",
+                    "Unknown environment variable value for {}, try one of `x11`,`wayland`,`gbm`",
                     BACKEND_PREFERENCE_ENV_VAR,
                 ),
             }
@@ -562,9 +617,14 @@ impl<T: 'static> EventLoop<T> {
             Err(err) => err,
         };
 
+        let gbm_err = match EventLoop::new_gbm() {
+            Ok(event_loop) => return event_loop,
+            Err(err) => err,
+        };
+
         let err_string = format!(
-            "Failed to initialize any backend! Wayland status: {:?} X11 status: {:?}",
-            wayland_err, x11_err,
+            "Failed to initialize any backend! Wayland status: {:?} X11 status: {:?} GBM status: {:?}",
+            wayland_err, x11_err, gbm_err
         );
         panic!(err_string);
     }
@@ -577,6 +637,10 @@ impl<T: 'static> EventLoop<T> {
 
     pub fn new_wayland_any_thread() -> Result<EventLoop<T>, ConnectError> {
         wayland::EventLoop::new().map(EventLoop::Wayland)
+    }
+
+    pub fn new_gbm() -> Result<EventLoop<T>, std::io::Error> {
+        gbm::EventLoop::new().map(EventLoop::Gbm)
     }
 
     pub fn new_x11() -> Result<EventLoop<T>, XNotSupported> {
@@ -608,6 +672,11 @@ impl<T: 'static> EventLoop<T> {
                 .into_iter()
                 .map(MonitorHandle::X)
                 .collect(),
+            EventLoop::Gbm(ref evlp) => evlp
+                .available_monitors()
+                .into_iter()
+                .map(MonitorHandle::Gbm)
+                .collect(),
         }
     }
 
@@ -616,6 +685,7 @@ impl<T: 'static> EventLoop<T> {
         match *self {
             EventLoop::Wayland(ref evlp) => MonitorHandle::Wayland(evlp.primary_monitor()),
             EventLoop::X(ref evlp) => MonitorHandle::X(evlp.x_connection().primary_monitor()),
+            EventLoop::Gbm(ref evlp) => MonitorHandle::Gbm(evlp.primary_monitor()),
         }
     }
 
@@ -623,6 +693,7 @@ impl<T: 'static> EventLoop<T> {
         match *self {
             EventLoop::Wayland(ref evlp) => EventLoopProxy::Wayland(evlp.create_proxy()),
             EventLoop::X(ref evlp) => EventLoopProxy::X(evlp.create_proxy()),
+            EventLoop::Gbm(ref evlp) => EventLoopProxy::Gbm(evlp.create_proxy()),
         }
     }
 
@@ -633,6 +704,7 @@ impl<T: 'static> EventLoop<T> {
         match *self {
             EventLoop::Wayland(ref mut evlp) => evlp.run_return(callback),
             EventLoop::X(ref mut evlp) => evlp.run_return(callback),
+            EventLoop::Gbm(ref mut evlp) => evlp.run_return(callback),
         }
     }
 
@@ -643,6 +715,7 @@ impl<T: 'static> EventLoop<T> {
         match self {
             EventLoop::Wayland(evlp) => evlp.run(callback),
             EventLoop::X(evlp) => evlp.run(callback),
+            EventLoop::Gbm(evlp) => evlp.run(callback),
         }
     }
 
@@ -650,6 +723,7 @@ impl<T: 'static> EventLoop<T> {
         match *self {
             EventLoop::Wayland(ref evl) => evl.window_target(),
             EventLoop::X(ref evl) => evl.window_target(),
+            EventLoop::Gbm(ref evl) => evl.window_target(),
         }
     }
 }
@@ -659,6 +733,7 @@ impl<T: 'static> EventLoopProxy<T> {
         match *self {
             EventLoopProxy::Wayland(ref proxy) => proxy.send_event(event),
             EventLoopProxy::X(ref proxy) => proxy.send_event(event),
+            EventLoopProxy::Gbm(ref proxy) => proxy.send_event(event),
         }
     }
 }
@@ -666,6 +741,7 @@ impl<T: 'static> EventLoopProxy<T> {
 pub enum EventLoopWindowTarget<T> {
     Wayland(wayland::EventLoopWindowTarget<T>),
     X(x11::EventLoopWindowTarget<T>),
+    Gbm(gbm::EventLoopWindowTarget<T>),
 }
 
 impl<T> EventLoopWindowTarget<T> {
@@ -674,6 +750,16 @@ impl<T> EventLoopWindowTarget<T> {
         match *self {
             EventLoopWindowTarget::Wayland(_) => true,
             EventLoopWindowTarget::X(_) => false,
+            EventLoopWindowTarget::Gbm(_) => false,
+        }
+    }
+
+    #[inline]
+    pub fn is_gbm(&self) -> bool {
+        match *self {
+            EventLoopWindowTarget::Wayland(_) => false,
+            EventLoopWindowTarget::X(_) => false,
+            EventLoopWindowTarget::Gbm(_) => true,
         }
     }
 }

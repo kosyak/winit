@@ -82,6 +82,8 @@ mio-extras = "2.0"
 smithay-client-toolkit = "^0.6.6"
 x11-dl = "2.18.5"
 percent-encoding = "2.0"
+gbm = { git = "https://github.com/kosyak/gbm.rs", default-features = false, features = ["drm-support", "import-egl", "gen"] }
+drm = { git = "https://github.com/kosyak/drm-rs", branch = "master" }
 
 [target.'cfg(any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "openbsd", target_os = "netbsd", target_os = "windows"))'.dependencies.parking_lot]
 version = "0.10"

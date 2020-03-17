@@ -31,6 +31,9 @@ pub trait EventLoopWindowTargetExtUnix {
     /// True if the `EventLoopWindowTarget` uses X11.
     fn is_x11(&self) -> bool;
 
+    /// True if the `EventLoop` uses Gbm.
+    fn is_gbm(&self) -> bool;
+
     #[doc(hidden)]
     fn xlib_xconnection(&self) -> Option<Arc<XConnection>>;
 
@@ -41,6 +44,8 @@ pub trait EventLoopWindowTargetExtUnix {
     ///
     /// The pointer will become invalid when the winit `EventLoop` is destroyed.
     fn wayland_display(&self) -> Option<*mut raw::c_void>;
+
+    fn gbm_display(&self) -> Option<*mut raw::c_void>;
 }
 
 impl<T> EventLoopWindowTargetExtUnix for EventLoopWindowTarget<T> {
@@ -51,7 +56,12 @@ impl<T> EventLoopWindowTargetExtUnix for EventLoopWindowTarget<T> {
 
     #[inline]
     fn is_x11(&self) -> bool {
-        !self.p.is_wayland()
+        !self.p.is_wayland() && !self.p.is_gbm()
+    }
+
+    #[inline]
+    fn is_gbm(&self) -> bool {
+        self.p.is_gbm()
     }
 
     #[inline]
@@ -70,6 +80,15 @@ impl<T> EventLoopWindowTargetExtUnix for EventLoopWindowTarget<T> {
                 Some(p.display().get_display_ptr() as *mut _)
             }
             _ => None,
+        }
+    }
+
+    #[inline]
+    fn gbm_display(&self) -> Option<*mut raw::c_void> {
+        use gbm::AsRaw;
+        match self.p {
+            LinuxEventLoopWindowTarget::Gbm(ref p) => Some(p.display.as_raw() as *mut _),
+            _ => None
         }
     }
 }
@@ -199,12 +218,18 @@ pub trait WindowExtUnix {
     /// The pointer will become invalid when the glutin `Window` is destroyed.
     fn wayland_surface(&self) -> Option<*mut raw::c_void>;
 
+    fn gbm_surface(&self) -> Option<*mut raw::c_void>;
+
     /// Returns a pointer to the `wl_display` object of wayland that is used by this window.
     ///
     /// Returns `None` if the window doesn't use wayland (if it uses xlib for example).
     ///
     /// The pointer will become invalid when the glutin `Window` is destroyed.
     fn wayland_display(&self) -> Option<*mut raw::c_void>;
+
+    fn gbm_display(&self) -> Option<*mut raw::c_void>;
+
+    fn gbm_page_flip(&self);
 
     /// Sets the color theme of the client side window decorations on wayland
     fn set_wayland_theme<T: Theme>(&self, theme: T);
@@ -277,10 +302,35 @@ impl WindowExtUnix for Window {
     }
 
     #[inline]
+    fn gbm_surface(&self) -> Option<*mut raw::c_void> {
+        use gbm::AsRaw;
+        match self.window {
+            LinuxWindow::Gbm(ref w) => Some(w.surface().as_raw() as *mut _),
+            _ => None
+        }
+    }
+
+    #[inline]
     fn wayland_display(&self) -> Option<*mut raw::c_void> {
         match self.window {
             LinuxWindow::Wayland(ref w) => Some(w.display().as_ref().c_ptr() as *mut _),
             _ => None,
+        }
+    }
+
+    #[inline]
+    fn gbm_display(&self) -> Option<*mut raw::c_void> {
+        use gbm::AsRaw;
+        match self.window {
+            LinuxWindow::Gbm(ref w) => Some(w.display().as_raw() as *mut _),
+            _ => None
+        }
+    }
+
+    fn gbm_page_flip(&self) {
+        match self.window {
+            LinuxWindow::Gbm(ref w) => w.page_flip(),
+            _ => {}
         }
     }
 
